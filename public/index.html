@@ -1,0 +1,227 @@
+<!doctype html>
+<!-- Baran FatoraBox v1.0.0 — Arabic-first self-hosted invoicing OS (zero dependencies) -->
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>Baran FatoraBox — الفواتير الذاتية</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icons/icon-32.png" type="image/png">
+<link rel="apple-touch-icon" href="/icons/icon-180.png">
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+
+<!-- ══ lock gate (shown only when passcode is set) ══ -->
+<div id="gate" class="gate hidden">
+  <div class="gate-card">
+    <div class="gate-logo">🧾</div>
+    <h1 id="gateTitle">Baran FatoraBox</h1>
+    <p id="gateHint" data-i18n="gateHint">مقفلة بكلمة مرور — أدخل الرمز للمتابعة</p>
+    <input id="gateCode" type="password" autocomplete="current-password" maxlength="64">
+    <button id="gateBtn" class="btn primary" data-i18n="unlock">فتح</button>
+    <div id="gateErr" class="form-err"></div>
+    <p class="credit-mini" data-i18n="creditMini">Baran Avisat · baranavi.gumroad.com</p>
+  </div>
+</div>
+
+<!-- ══ app shell ══ -->
+<div id="app" class="app hidden">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">🧾</span>
+      <span class="brand-name">FatoraBox</span>
+      <span class="brand-badge">v1.0.0</span>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-view="dash"><span data-i18n="tabDash">لوحة</span></button>
+      <button class="tab" data-view="inv"><span data-i18n="tabInv">الفواتير</span></button>
+      <button class="tab" data-view="cli"><span data-i18n="tabCli">العملاء</span></button>
+      <button class="tab" data-view="set"><span data-i18n="tabSet">الإعدادات</span></button>
+    </nav>
+    <div class="top-actions">
+      <button id="themeBtn" class="iconbtn" title="theme" aria-label="theme">🌙</button>
+    </div>
+  </header>
+
+  <main class="main">
+
+    <!-- ── Dashboard ── -->
+    <section id="view-dash" class="view">
+      <div class="stat-grid">
+        <div class="stat"><span class="stat-label" data-i18n="stMtd">مبيعات الشهر</span><b id="stMtd" class="stat-val">—</b></div>
+        <div class="stat"><span class="stat-label" data-i18n="stVat">ضريبة مستحقة (غير محصّلة)</span><b id="stVat" class="stat-val warn">—</b></div>
+        <div class="stat"><span class="stat-label" data-i18n="stOverdue">فواتير متأخرة</span><b id="stOverdue" class="stat-val bad">—</b></div>
+        <div class="stat"><span class="stat-label" data-i18n="stOpen">مبالغ مفتوحة</span><b id="stOpen" class="stat-val">—</b></div>
+      </div>
+      <div class="dash-cols">
+        <div class="panel">
+          <div class="panel-head"><h2 data-i18n="monthly">المبيعات شهرياً</h2><span class="muted" data-i18n="last6">آخر 6 أشهر</span></div>
+          <div id="chart" class="chart"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2 data-i18n="topClients">أفضل العملاء</h2></div>
+          <div id="topClients" class="toplist"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <h2 data-i18n="recent">أحدث الفواتير</h2>
+          <button id="quickNew" class="btn primary sm" data-i18n="newInvoice">+ فاتورة جديدة</button>
+        </div>
+        <table class="tbl"><thead id="recentHead"></thead><tbody id="recentBody"></tbody></table>
+      </div>
+    </section>
+
+    <!-- ── Invoices ── -->
+    <section id="view-inv" class="view hidden">
+      <div class="panel">
+        <div class="panel-head">
+          <h2 data-i18n="allInvoices">كل الفواتير</h2>
+          <div class="row-tools">
+            <input id="invSearch" class="field sm" type="search" data-i18n-ph="searchPh" placeholder="بحث رقم/عميل…">
+            <select id="invStatus" class="field sm">
+              <option value="" data-i18n="allStatus">الكل</option>
+              <option value="draft" data-i18n="stDraft">مسودة</option>
+              <option value="sent" data-i18n="stSent">أُرسلت</option>
+              <option value="partial" data-i18n="stPartial">جزئية</option>
+              <option value="paid" data-i18n="stPaid">مدفوعة</option>
+              <option value="void" data-i18n="stVoid">ملغاة</option>
+            </select>
+            <button id="newInvoice" class="btn primary sm" data-i18n="newInvoice">+ فاتورة</button>
+          </div>
+        </div>
+        <table class="tbl"><thead id="invHead"></thead><tbody id="invBody"></tbody></table>
+      </div>
+    </section>
+
+    <!-- ── Clients ── -->
+    <section id="view-cli" class="view hidden">
+      <div class="panel">
+        <div class="panel-head">
+          <h2 data-i18n="clients">العملاء</h2>
+          <button id="newClient" class="btn primary sm" data-i18n="newClient">+ عميل</button>
+        </div>
+        <table class="tbl"><thead id="cliHead"></thead><tbody id="cliBody"></tbody></table>
+      </div>
+    </section>
+
+    <!-- ── Settings ── -->
+    <section id="view-set" class="view hidden">
+      <div class="panel">
+        <div class="panel-head"><h2 data-i18n="business">بيانات المنشأة</h2></div>
+        <div class="form-grid">
+          <label class="fld"><span data-i18n="bName">الاسم التجاري</span><input id="bName" class="field" maxlength="120"></label>
+          <label class="fld"><span data-i18n="bLegal">الاسم القانوني (يظهر في QR)</span><input id="bLegal" class="field" maxlength="120"></label>
+          <label class="fld"><span data-i18n="bVat">الرقم الضريبي (15 خانة)</span><input id="bVat" class="field" inputmode="numeric" maxlength="15"></label>
+          <label class="fld"><span data-i18n="bCr">السجل التجاري</span><input id="bCr" class="field" maxlength="40"></label>
+          <label class="fld"><span data-i18n="bPhone">الهاتف</span><input id="bPhone" class="field" maxlength="40"></label>
+          <label class="fld"><span data-i18n="bEmail">البريد</span><input id="bEmail" class="field" maxlength="120"></label>
+          <label class="fld wide"><span data-i18n="bAddr">العنوان</span><input id="bAddr" class="field" maxlength="200"></label>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2 data-i18n="tax">الضريبة والعملة</h2></div>
+        <div class="form-grid">
+          <label class="fld"><span data-i18n="vatPreset">قيمة مضافة جاهزة</span>
+            <select id="vatPreset" class="field">
+              <option value="KSA">🇸🇦 السعودية 15%</option>
+              <option value="TR">🇹🇷 تركيا 20%</option>
+              <option value="EG">🇪🇬 مصر 14%</option>
+              <option value="AE">🇦🇪 الإمارات 5%</option>
+              <option value="BH">🇧🇭 البحرين 10%</option>
+              <option value="OM">🇴🇲 عُمان 5%</option>
+              <option value="QA">🇶🇦 قطر 5%</option>
+              <option value="KW">🇰🇼 الكويت 0%</option>
+              <option value="JO">🇯🇴 الأردن 16%</option>
+              <option value="CUSTOM" data-i18n="custom">مخصص</option>
+            </select></label>
+          <label class="fld"><span data-i18n="vatRate">نسبة الضريبة %</span><input id="vatRate" class="field" type="number" min="0" max="100" step="0.01"></label>
+          <label class="fld"><span data-i18n="currency">العملة</span><input id="currency" class="field" maxlength="6" value="SAR"></label>
+          <label class="fld"><span data-i18n="prefix">بادئة الترقيم</span><input id="prefix" class="field" maxlength="8" value="INV"></label>
+          <label class="fld wide"><span data-i18n="terms">شروط تظهر أسفل الفاتورة</span><textarea id="terms" class="field" rows="2" maxlength="500"></textarea></label>
+        </div>
+        <div class="form-grid">
+          <label class="fld"><span data-i18n="lang">لغة الواجهة</span>
+            <select id="langSel" class="field">
+              <option value="ar">العربية</option><option value="tr">Türkçe</option><option value="en">English</option>
+            </select></label>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2 data-i18n="lockSec">الحماية والبيانات</h2></div>
+        <div class="btnrow">
+          <button id="lockBtn" class="btn" data-i18n="setLock">🔒 تعيين رمز مرور</button>
+          <a class="btn" href="/api/backup" download data-i18n="backup">⬇️ نسخة احتياطية JSON</a>
+          <a class="btn" href="/export/invoices.csv" download data-i18n="csv">⬇️ تصدير CSV</a>
+          <button id="resetBtn" class="btn danger" data-i18n="reset">⚠️ تهيئة نهائية (حذف الكل)</button>
+        </div>
+        <p class="muted sm" data-i18n="lockNote">الرمز يُحفظ مُهشّراً (SHA-256) داخل data/db.json فقط — بلا سحابة، بلا تتبع. المحرك: ملقم واحد صفر-اعتماديات يطابق ZATCA TLV مُتحقّقة بـVision.</p>
+      </div>
+      <p class="footer-credit" id="footerCredit"></p>
+    </section>
+  </main>
+</div>
+
+<!-- ══ invoice editor ══ -->
+<div id="editor" class="modal hidden">
+  <div class="modal-card wide">
+    <div class="modal-head">
+      <h2 id="edTitle" data-i18n="newInvTitle">فاتورة جديدة</h2>
+      <button class="iconbtn" id="edClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <label class="fld"><span data-i18n="client">العميل</span><select id="edClient" class="field"></select></label>
+        <label class="fld"><span data-i18n="cliQuick">أو اسم سريع (نقدي)</span><input id="edQuickName" class="field" maxlength="100" placeholder="عميل نقدي"></label>
+        <label class="fld"><span data-i18n="issueDate">تاريخ الإصدار</span><input id="edIssue" class="field" type="date"></label>
+        <label class="fld"><span data-i18n="dueDate">الاستحقاق</span><input id="edDue" class="field" type="date"></label>
+        <label class="fld"><span data-i18n="cur">العملة</span><input id="edCur" class="field" maxlength="6"></label>
+      </div>
+      <table class="tbl items" id="edItems">
+        <thead><tr>
+          <th class="col-desc" data-i18n="iDesc">الوصف</th><th data-i18n="iQty">كمية</th><th data-i18n="iPrice">سعر</th>
+          <th data-i18n="iVat">ض%</th><th data-i18n="iDisc">خصم</th><th data-i18n="iLine">بند</th><th></th>
+        </tr></thead>
+        <tbody id="edRows"></tbody>
+      </table>
+      <button id="edAddRow" class="btn sm" data-i18n="addRow">+ بند</button>
+      <div class="totals">
+        <div class="tot-row"><span data-i18n="subtotal">المجموع قبل الضريبة</span><b id="edSub">0.00</b></div>
+        <div class="tot-row"><span data-i18n="vatT">الضريبة</span><b id="edVat">0.00</b></div>
+        <div class="tot-row grand"><span data-i18n="total">الإجمالي</span><b id="edTot">0.00</b></div>
+        <p class="muted sm" data-i18n="serverAuth">الملقم هو المرجع النهائي في الحساب</p>
+      </div>
+      <label class="fld wide"><span data-i18n="notes">ملاحظات</span><textarea id="edNotes" class="field" rows="2" maxlength="400"></textarea></label>
+    </div>
+    <div class="modal-foot">
+      <button id="edSave" class="btn primary" data-i18n="save">حفظ</button>
+      <button id="edCancel" class="btn" data-i18n="cancel">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ invoice view (printable) ══ -->
+<div id="viewer" class="modal hidden">
+  <div class="modal-card wide sheet-wrap">
+    <div class="modal-head noprint">
+      <h2 id="vwTitle" class="mono" data-i18n="invoiceNo">فاتورة</h2>
+      <div class="row-tools">
+        <button id="vwPrint" class="btn primary sm" data-i18n="print">🖨️ طباعة / PDF</button>
+        <button id="vwClose" class="btn sm" data-i18n="close">إغلاق</button>
+      </div>
+    </div>
+    <article id="sheet" class="sheet"></article>
+  </div>
+</div>
+
+<!-- ══ payment / status / client modals + confirm + toast ══ -->
+<div id="mini" class="modal hidden">
+  <div class="modal-card" id="miniCard"></div>
+</div>
+<div id="toast" class="toast hidden"></div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
